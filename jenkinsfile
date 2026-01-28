@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB_CREDENTIALS = 'pooja123'
+        IMAGE_NAME = 'poojab073/react'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git(
+                    url: 'https://github.com/POOJA-ammu/react-repo.git',
+                    branch: 'main'
+                )
+            }
+        }
+      
+     stage('Install & Build') {
+            steps {
+                sh 'npm install'
+                sh 'npm run build'
+            }
+        }
+
+      stage('Docker Build') {
+            steps {
+                sh 'docker build -t react-swarm-app .'
+            }
+        }
+
+        stage('Deploy to Docker Swarm') {
+            steps {
+                sh 'docker stack deploy -c docker-compose.yml reactapp'
+            }
+        }
+
+
+        stage('Build') {
+            steps {
+                script {
+                    dockerImage = docker.build("${IMAGE_NAME}:latest")
+                }
+            }
+        }
+
+        stage('Push') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+                        dockerImage.push('latest')
+                    }
+            }
+        }
+    }
+}
+}
